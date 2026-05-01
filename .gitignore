@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# uv / venv
+.venv/
+.python-version
+
+# Secrets
+.env
+
+# Cache: CASMA CSVs, pickled NOAA pulls, etc.
+cache/*
+!cache/.gitkeep
+
+# Local workbook copies — canonical lives in OneDrive
+workbooks/*.xlsx
+workbooks/~$*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

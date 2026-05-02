@@ -85,16 +85,19 @@ YIELD_MODEL: dict[str, float | list[int]] = {
 
 # ---- GDD Stage Model parameters (handoff §3.3) -------------------------
 # Logistic: pct = 100 / (1 + exp(-k * (GDD - GDD50)))
-# Calibrated on 2021-2024 NASS data; don't refit casually.
+# Refit 2026-05-01 on 2021-2025 NASS data, using NOAA-standard cumulative
+# GDD50 from Cedar Rapids airport (USW00014990). Original 2021-2024 fits
+# in handoff §3.3 are obsolete because the GDD scale changed when we moved
+# from the previous (unknown) source to NOAA-standard.
 
 GDD_STAGE_PARAMS: dict[str, dict[str, float]] = {
-    "planted":        {"GDD50":   55, "k": 0.04062, "r_squared": 0.896, "n": 39},
-    "emerged":        {"GDD50":  243, "k": 0.01183, "r_squared": 0.940, "n": 33},
-    "silking":        {"GDD50": 1416, "k": 0.00762, "r_squared": 0.960, "n": 30},
-    "doughing":       {"GDD50": 1826, "k": 0.00538, "r_squared": 0.977, "n": 38},
-    "dented":         {"GDD50": 2286, "k": 0.00529, "r_squared": 0.991, "n": 39},
-    "corn_mature":    {"GDD50": 2721, "k": 0.00821, "r_squared": 0.989, "n": 36},
-    "corn_harvested": {"GDD50": 3109, "k": 0.01181, "r_squared": 0.897, "n": 43},
+    "planted":        {"GDD50":  144.0, "k": 0.01298, "r_squared": 0.870, "n": 45},
+    "emerged":        {"GDD50":  319.7, "k": 0.01098, "r_squared": 0.940, "n": 40},
+    "silking":        {"GDD50": 1559.5, "k": 0.00697, "r_squared": 0.956, "n": 36},
+    "doughing":       {"GDD50": 1953.5, "k": 0.00518, "r_squared": 0.976, "n": 47},
+    "dented":         {"GDD50": 2418.1, "k": 0.00563, "r_squared": 0.988, "n": 46},
+    "corn_mature":    {"GDD50": 2796.3, "k": 0.00881, "r_squared": 0.971, "n": 41},
+    "corn_harvested": {"GDD50": 3148.3, "k": 0.01390, "r_squared": 0.853, "n": 46},
 }
 
 # ---- Weather (handoff §4.1, §6.1.2) -----------------------------------

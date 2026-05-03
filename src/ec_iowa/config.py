@@ -70,16 +70,20 @@ DATA_ROW_OFFSETS: dict[str, int] = {
 }
 
 # ---- Yield Model coefficients (handoff §3.2) ---------------------------
-# Trained 1990-2024 excluding 2020 (derecho). Don't change without retraining.
+# Refit 2026-05-01 on Year + SubStress_Jul only. The original 3-feature
+# model included GE_Silking (NASS state-level Good+Excellent rating at
+# silking week), but NASS Crop Progress publication was cut as of
+# 2026-05-01. Dropping the feature cost 0.016 R² and 0.6 bu/ac LOOCV MAE.
+# Training set unchanged: 2010-2024 excluding 2020 (derecho), 14 years.
 
 YIELD_MODEL: dict[str, float | list[int]] = {
-    "intercept":      -9218.7,
-    "year":               4.656,
-    "substress_jul":     -0.283,
-    "ge_silking":         0.428,
-    "r_squared":          0.902,
-    "mae":                5.89,
-    "loocv_mae":          7.94,
+    "intercept":      -10086.87,
+    "year":                5.103,
+    "substress_jul":      -0.440,
+    # ge_silking removed — see header comment
+    "r_squared":           0.886,
+    "mae":                 6.63,
+    "loocv_mae":           8.52,
     "training_excluded_years": [2020],
 }
 

@@ -89,19 +89,30 @@ YIELD_MODEL: dict[str, float | list[int]] = {
 
 # ---- GDD Stage Model parameters (handoff §3.3) -------------------------
 # Logistic: pct = 100 / (1 + exp(-k * (GDD - GDD50)))
-# Refit 2026-05-01 on 2021-2025 NASS data, using NOAA-standard cumulative
-# GDD50 from Cedar Rapids airport (USW00014990). Original 2021-2024 fits
-# in handoff §3.3 are obsolete because the GDD scale changed when we moved
-# from the previous (unknown) source to NOAA-standard.
+# Refit 2026-05-05 on 2010-2025 NASS district stage observations from
+# IEM PublicHISTORIC_CORN.xlsx, paired with NOAA-standard cumulative GDD
+# from Cedar Rapids airport (USW00014990).
+#
+# Window choice: an era-split diagnostic (2026-05-05) showed that adding
+# pre-2010 data degrades fit quality due to genetic drift (1970s/80s
+# hybrids develop on a different GDD schedule than modern hybrids). The
+# previous 2021-2025-only fit had higher in-sample R² but parameters that
+# were outliers vs the long-term consensus, suggesting it overfit to
+# unusually cool springs in 2021-2025. The 2010-2025 window is the sweet
+# spot: enough modern-era observations (n=88-129 per stage) without
+# pre-genetic-drift contamination, and parameters align with the
+# 31/51-year long-term consensus.
+#
+# Don't refit casually.
 
 GDD_STAGE_PARAMS: dict[str, dict[str, float]] = {
-    "planted":        {"GDD50":  144.0, "k": 0.01298, "r_squared": 0.870, "n": 45},
-    "emerged":        {"GDD50":  319.7, "k": 0.01098, "r_squared": 0.940, "n": 40},
-    "silking":        {"GDD50": 1559.5, "k": 0.00697, "r_squared": 0.956, "n": 36},
-    "doughing":       {"GDD50": 1953.5, "k": 0.00518, "r_squared": 0.976, "n": 47},
-    "dented":         {"GDD50": 2418.1, "k": 0.00563, "r_squared": 0.988, "n": 46},
-    "corn_mature":    {"GDD50": 2796.3, "k": 0.00881, "r_squared": 0.971, "n": 41},
-    "corn_harvested": {"GDD50": 3148.3, "k": 0.01390, "r_squared": 0.853, "n": 46},
+    "planted":        {"GDD50":   56.6, "k": 0.02243, "r_squared": 0.765, "n": 103},
+    "emerged":        {"GDD50":  199.9, "k": 0.01053, "r_squared": 0.843, "n":  99},
+    "silking":        {"GDD50": 1387.8, "k": 0.00723, "r_squared": 0.917, "n":  88},
+    "doughing":       {"GDD50": 1843.8, "k": 0.00476, "r_squared": 0.824, "n": 108},
+    "dented":         {"GDD50": 2221.2, "k": 0.00562, "r_squared": 0.915, "n": 115},
+    "corn_mature":    {"GDD50": 2619.1, "k": 0.00799, "r_squared": 0.792, "n": 102},
+    "corn_harvested": {"GDD50": 2952.5, "k": 0.00456, "r_squared": 0.367, "n": 129},
 }
 
 # ---- Weather (handoff §4.1, §6.1.2) -----------------------------------

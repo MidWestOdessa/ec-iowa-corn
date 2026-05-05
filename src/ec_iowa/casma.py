@@ -339,6 +339,19 @@ def _find_archive_row(ws, monday: date) -> int:
     )
 
 
+def casma_to_nass_substress(casma_substress: float) -> float:
+    """Translate CASMA subsoil VS+S percentage to its NASS-equivalent.
+
+    CASMA reads systematically lower than NASS (satellite vs human raters);
+    yield-model coefficients were trained on NASS values, so 2026+ CASMA
+    inputs need this calibration before being fed to the yield model.
+
+    See config.CASMA_NASS_SUBSTRESS_CALIBRATION for fit details.
+    """
+    cal = config.CASMA_NASS_SUBSTRESS_CALIBRATION
+    return float(cal["intercept"]) + float(cal["slope"]) * float(casma_substress)
+
+
 def write_to_archive(
     wb: "Workbook",
     year: int,

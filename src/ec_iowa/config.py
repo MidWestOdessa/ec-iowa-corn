@@ -87,6 +87,25 @@ YIELD_MODEL: dict[str, float | list[int]] = {
     "training_excluded_years": [2020],
 }
 
+# ---- CASMA → NASS subsoil-stress calibration --------------------------
+# Calibrated 2026-05-05 against PublicHISTORIC_Moisture.xlsx Dist Subsoil
+# 2010-current, EC column, peak-July weeks of 2015-2024 (10 overlap years).
+#
+# Yield model was trained on NASS-source SubStress_Jul values (1990s-2024
+# crowd-rated soil moisture). 2026+ pipeline uses CASMA satellite-derived
+# values, which read systematically lower (slope < 1, positive intercept).
+# Use casma_to_nass_substress(x) to translate before feeding to yield model.
+
+CASMA_NASS_SUBSTRESS_CALIBRATION = {
+    "intercept": 10.33,
+    "slope":      1.2226,
+    "r_squared":  0.845,
+    "mae_pp":     7.54,
+    "pearson":    0.919,
+    "n_years":    10,
+    "training_years": list(range(2015, 2025)),
+}
+
 # ---- GDD Stage Model parameters (handoff §3.3) -------------------------
 # Logistic: pct = 100 / (1 + exp(-k * (GDD - GDD50)))
 # Refit 2026-05-05 on 2010-2025 NASS district stage observations from

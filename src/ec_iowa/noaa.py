@@ -105,11 +105,22 @@ def cumulative_gdd(
     accum_start: date,
     last_day: date,
 ) -> dict[date, float]:
-    """Running cumulative GDD50 for every day in [accum_start, last_day], rounded to 0.1."""
+    """Running cumulative GDD50 for every day in [accum_start, min(last_day, latest_observed)].
+
+    Stops at the latest date present in `daily_temps` rather than extrapolating
+    flat past the end of available NOAA data — otherwise downstream callers
+    end up writing today's running total into next month's slot. Days within
+    the observed range that are missing (genuine NOAA gaps) contribute 0 and
+    the cumulative passes through unchanged.
+    """
+    if not daily_temps:
+        return {}
+    latest_observed = max(daily_temps.keys())
+    end = min(last_day, latest_observed)
     out: dict[date, float] = {}
     cum = 0.0
     d = accum_start
-    while d <= last_day:
+    while d <= end:
         if d in daily_temps:
             t = daily_temps[d]
             tmax, tmin = t.get("TMAX"), t.get("TMIN")

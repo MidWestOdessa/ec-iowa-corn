@@ -84,7 +84,9 @@ YIELD_MODEL: dict[str, float | list[int]] = {
     "r_squared":           0.886,
     "mae":                 6.63,
     "loocv_mae":           8.52,
-    "training_excluded_years": [2020],
+    # 2020 = derecho exogenous shock; 2025 = Southern Rust disease pressure
+    # exogenous shock (residual -25.9 bu/ac vs prediction; Benton imputed)
+    "training_excluded_years": [2020, 2025],
 }
 
 # ---- CASMA → NASS subsoil-stress calibration --------------------------

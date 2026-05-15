@@ -429,20 +429,29 @@ if hw:
         fig_gdd.update_yaxes(gridcolor='#e4e7eb', linecolor='#e4e7eb')
         st.plotly_chart(fig_gdd, use_container_width=True)
 
-    # 4b. Comparison tables at the latest 2026 week (if 2026 is selected) or
-    # the most-recent week any selected year has stage data.
+    # 4b. Find latest "active" week for 2026 = latest week with planted > 0 or
+    # emerged > 0. We use ">0" not "is not None" because the late-week stage
+    # formulas evaluate to literal 0 (their IFERROR fallback when GDD has no
+    # data yet) — those aren't real readings.
+    def _is_active(w: dict) -> bool:
+        for s in ("planted", "emerged"):
+            v = w.get(s)
+            if isinstance(v, (int, float)) and v > 0:
+                return True
+        return False
+
     latest_2026_week = None
     if "2026" in selected_years:
         for w in (hw.get("2026") or [])[::-1]:
-            if any(w.get(s) is not None for s in ["planted", "emerged"]):
+            if _is_active(w):
                 latest_2026_week = w["iso_week"]
                 break
     if latest_2026_week is None:
-        # Fall back to the latest week any selected year has stage data
+        # Fall back to the latest active week any selected year has
         all_weeks = []
         for yr in selected_years:
             for w in hw.get(yr) or []:
-                if any(w.get(s) is not None for s in ["planted", "emerged"]):
+                if _is_active(w):
                     all_weeks.append(w["iso_week"])
         latest_2026_week = max(all_weeks) if all_weeks else None
 

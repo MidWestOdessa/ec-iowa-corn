@@ -162,6 +162,44 @@ def main() -> None:
         "crop_progress": crop_progress,
     }
 
+    # ---- 4. Last 5 years weekly trajectories + 2026 ----
+    comparison_years = [2021, 2022, 2023, 2024, 2025, 2026]
+    history_weekly: dict[str, list[dict]] = {}
+    stage_keys = ["planted", "emerged", "silking", "doughing", "dented", "corn_mature", "corn_harvested"]
+    for yr in comparison_years:
+        if yr not in config.CROP_PROGRESS_YEAR_BLOCKS:
+            continue
+        blk = config.CROP_PROGRESS_YEAR_BLOCKS[yr]
+        dr, gr = blk["dates"], blk["gdd"]
+        weeks_out = []
+        for c in range(2, 38):
+            d = ws_cp.cell(dr, c).value
+            if d is None:
+                continue
+            if isinstance(d, datetime):
+                d = d.date()
+            if not isinstance(d, date):
+                continue
+            iso_week = d.isocalendar()[1]
+            entry = {
+                "monday": d.isoformat(),
+                "iso_week": iso_week,
+                "gdd": ws_cp.cell(gr, c).value if isinstance(ws_cp.cell(gr, c).value, (int, float)) else None,
+            }
+            for stage in stage_keys:
+                v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[stage], c).value
+                entry[stage] = float(v) if isinstance(v, (int, float)) else None
+            for key, off_key in [
+                ("top_vs", "topsoil_vs"), ("top_s", "topsoil_s"),
+                ("top_a", "topsoil_a"), ("top_su", "topsoil_su"),
+                ("sub_vs", "subsoil_vs"), ("sub_s", "subsoil_s"),
+                ("sub_a", "subsoil_a"), ("sub_su", "subsoil_su"),
+            ]:
+                v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[off_key], c).value
+                entry[key] = float(v) if isinstance(v, (int, float)) else None
+            weeks_out.append(entry)
+        history_weekly[str(yr)] = weeks_out
+
     # ---- Assemble + write ----
     snapshot = {
         "as_of": date.today().isoformat(),
@@ -170,6 +208,7 @@ def main() -> None:
         "total_corn_acres": config.TOTAL_CORN_ACRES,
         "forecast": forecast,
         "history": history,
+        "history_weekly": history_weekly,
         "conditions": conditions,
         "model": {
             "yield": dict(ym),

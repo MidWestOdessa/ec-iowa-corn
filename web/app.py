@@ -4,10 +4,12 @@ Usage:  uv run streamlit run web/app.py
 """
 from __future__ import annotations
 import json
+from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 
@@ -24,8 +26,62 @@ st.set_page_config(
 # ---- Custom styling ----
 CUSTOM_CSS = """
 <style>
+/* Agricultural landscape: clearly cool pale-blue sky at top, clearly warm
+   wheat-gold field at bottom. Fixed to viewport so the user always sees
+   the full sky->field range regardless of scroll position. Streamlit's
+   inner containers are forced transparent so they don't cover the gradient. */
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+  background:
+    /* Rolling-field silhouette anchored to bottom of viewport. Two layered
+       paths for depth: a paler distant ridgeline behind a richer nearer one.
+       Full width, ~180px tall, fixed — completes the sky→field landscape. */
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 200' preserveAspectRatio='none'><path fill='%23704c1a' fill-opacity='0.09' d='M0 95 C 240 70 500 95 760 75 C 1020 55 1300 90 1600 65 L 1600 200 L 0 200 Z'/><path fill='%23704c1a' fill-opacity='0.18' d='M0 135 C 220 110 500 145 800 120 C 1100 95 1380 135 1600 115 L 1600 200 L 0 200 Z'/></svg>") no-repeat bottom center / 100% 180px fixed,
+    /* Subtle horizon glow at viewport midline */
+    linear-gradient(180deg, transparent 46%, rgba(220, 165, 90, 0.18) 53%, transparent 60%) fixed,
+    /* Sky (cool blue-gray) -> Field (warm wheat gold) */
+    linear-gradient(180deg,
+      #cad9e2 0%,        /* clear pale sky-blue */
+      #d6dde1 18%,
+      #e1d8b8 42%,       /* horizon haze */
+      #d8ba76 65%,       /* near field */
+      #b88e3f 100%       /* deep wheat */
+    ) fixed !important;
+  background-size: 100% 180px, 100% 100%, 100% 100% !important;
+}
+
+/* Force Streamlit's inner content containers to be transparent so the
+   gradient actually shows through everywhere, not just under cards' margins. */
+section.main, [data-testid="stMain"], [data-testid="stMainBlockContainer"],
+.main .block-container, [data-testid="block-container"] {
+  background: transparent !important;
+}
+.stApp::before {
+  content: "";
+  position: fixed; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #0a3d3a 0%, #145e58 50%, #c89b3a 100%);
+  z-index: 1000;
+  opacity: 0.9;
+}
+
+/* Cards: bright white with a slightly warmer shadow so they read like
+   paper notes sitting on a wheat-colored desk */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+  background: #ffffff !important;
+  border: 1px solid rgba(220, 205, 170, 0.7) !important;
+  box-shadow:
+    0 1px 4px rgba(120, 90, 40, 0.08),
+    0 2px 8px rgba(120, 90, 40, 0.04) !important;
+}
+
+/* Status bar — soft cream with blur, fits the wheat palette */
+.statusbar {
+  background: rgba(255, 252, 240, 0.88) !important;
+  backdrop-filter: blur(8px);
+  border-color: rgba(220, 205, 170, 0.7) !important;
+}
+
 /* Tighter, more decisive layout */
-.main .block-container { padding-top: 1.5rem; padding-bottom: 2rem; max-width: 1280px; }
+.main .block-container { padding-top: 1.8rem; padding-bottom: 2rem; max-width: 1280px; }
 
 /* Brand palette */
 :root {
@@ -455,11 +511,21 @@ if hw:
                     all_weeks.append(w["iso_week"])
         latest_2026_week = max(all_weeks) if all_weeks else None
 
+    # Resolve a friendly date label for the section headers (Mon of latest 2026 week).
+    latest_2026_label = None
+    if latest_2026_week is not None:
+        for w in hw.get("2026") or []:
+            if w.get("iso_week") == latest_2026_week and w.get("monday"):
+                d = datetime.fromisoformat(w["monday"]).date()
+                latest_2026_label = f"{d.strftime('%b')} {d.day}"
+                break
+    label_at = f"week of {latest_2026_label}" if latest_2026_label else f"wk {latest_2026_week}"
+
     cmp1, cmp2 = st.columns(2, gap="medium")
 
     with cmp1:
         with st.container(border=True):
-            st.markdown(f"### Crop progress at wk {latest_2026_week}" if latest_2026_week else "### Crop progress comparison")
+            st.markdown(f"### Crop progress at {label_at}" if latest_2026_week else "### Crop progress comparison")
             if latest_2026_week is None:
                 st.caption("No selected year has stage data yet.")
             else:
@@ -480,11 +546,11 @@ if hw:
                     rows.append(row)
                 df_cmp = pd.DataFrame(rows)
                 st.dataframe(df_cmp, hide_index=True, use_container_width=True, height=290)
-                st.caption(f"EC district NASS / GDD-model % at ISO week {latest_2026_week}.")
+                st.caption(f"EC district NASS / GDD-model % at ISO week {latest_2026_week} ({label_at}).")
 
     with cmp2:
         with st.container(border=True):
-            st.markdown(f"### Soil moisture at wk {latest_2026_week}" if latest_2026_week else "### Soil moisture comparison")
+            st.markdown(f"### Soil moisture at {label_at}" if latest_2026_week else "### Soil moisture comparison")
             if latest_2026_week is None:
                 st.caption("No selected year has soil-moisture data yet.")
             else:
@@ -516,7 +582,151 @@ if hw:
                     rows.append(row)
                 df_stress = pd.DataFrame(rows)
                 st.dataframe(df_stress, hide_index=True, use_container_width=True, height=215)
-                st.caption(f"VS+S = drought stress; Surplus = excess moisture. ISO week {latest_2026_week}.")
+                st.caption(f"VS+S = drought stress; Surplus = excess moisture. ISO week {latest_2026_week} ({label_at}).")
+
+# ---- 7-day weather outlook (NWS, live, cached 6 hours) ----
+@st.cache_data(ttl=6 * 3600, show_spinner=False)
+def fetch_nws_forecast() -> list[dict] | None:
+    """7-day forecast for Cedar Rapids Airport area via NWS api.weather.gov."""
+    lat, lon = 41.884, -91.71
+    headers = {"User-Agent": "ec_iowa_corn dashboard (local)"}
+    try:
+        r = requests.get(f"https://api.weather.gov/points/{lat},{lon}", headers=headers, timeout=10)
+        r.raise_for_status()
+        url = r.json()["properties"]["forecast"]
+        r2 = requests.get(url, headers=headers, timeout=10)
+        r2.raise_for_status()
+        return r2.json()["properties"]["periods"]
+    except Exception:
+        return None
+
+
+def _gdd50_predicted(tmax: float, tmin: float) -> float:
+    """Mirror noaa.compute_gdd50_daily so dashboard is independent."""
+    tmax_c = max(min(tmax, 86), 50)
+    tmin_c = max(min(tmin, 86), 50)
+    return max(0.0, (tmax_c + tmin_c) / 2 - 50)
+
+
+def _weather_icon(short_forecast: str) -> str:
+    s = (short_forecast or "").lower()
+    if "thunderstorm" in s or "thunder" in s: return "⛈️"
+    if "shower" in s:                          return "🌦️"
+    if "rain" in s or "drizzle" in s:          return "🌧️"
+    if "snow" in s or "flurr" in s:            return "❄️"
+    if "fog" in s or "haze" in s or "mist" in s: return "🌫️"
+    if "windy" in s or "breezy" in s:          return "💨"
+    if "partly sunny" in s or "partly cloudy" in s or "mostly cloudy" in s: return "⛅"
+    if "mostly sunny" in s or "sunny" in s or "clear" in s: return "☀️"
+    if "cloudy" in s or "overcast" in s:       return "☁️"
+    return "🌤️"
+
+
+def _temp_color(t) -> str:
+    """Color a temperature value by range — cool blues -> warm reds."""
+    if t is None:
+        return "#6b7280"
+    if t < 32:  return "#1e3a8a"   # below freezing — deep blue
+    if t < 45:  return "#2563eb"   # cold — blue
+    if t < 60:  return "#0891b2"   # cool — teal
+    if t < 72:  return "#10b981"   # mild — green
+    if t < 82:  return "#f59e0b"   # warm — amber
+    if t < 92:  return "#ea580c"   # hot — orange
+    return "#dc2626"               # very hot — red
+
+
+fc = fetch_nws_forecast()
+if fc:
+    st.markdown('<h2><span class="section-pill">05</span>7-day outlook — Cedar Rapids</h2>',
+                unsafe_allow_html=True)
+    with st.container(border=True):
+        # Group NWS periods by calendar date.
+        daily: dict[str, dict] = {}
+        for p in fc:
+            try:
+                start_date = datetime.fromisoformat(p["startTime"]).date()
+            except Exception:
+                continue
+            key = start_date.isoformat()
+            entry = daily.setdefault(key, {
+                "date": start_date, "name": None,
+                "high": None, "low": None, "short": "", "pop": None,
+            })
+            if p.get("isDaytime"):
+                entry["high"] = p.get("temperature")
+                entry["short"] = p.get("shortForecast", entry["short"])
+                entry["name"] = p["name"]
+            else:
+                entry["low"] = p.get("temperature")
+                if not entry["short"]:
+                    entry["short"] = p.get("shortForecast", "")
+                if not entry["name"]:
+                    entry["name"] = p["name"].replace(" Night", "")
+            pop = p.get("probabilityOfPrecipitation", {}).get("value")
+            if pop is not None:
+                entry["pop"] = max(entry.get("pop") or 0, pop)
+
+        days = sorted(daily.values(), key=lambda x: x["date"])[:7]
+        gdd_week_total = 0.0
+
+        # Build the entire 7-day forecast as ONE flex row — no per-day cards,
+        # just subtle 1px dividers between cells inside a single unified panel.
+        cells_html = []
+        for i, d in enumerate(days):
+            icon = _weather_icon(d.get("short") or "")
+            hi, lo = d.get("high"), d.get("low")
+            hi_col = _temp_color(hi)
+            short_name = (d.get("name") or d["date"].strftime("%a")).replace(" Afternoon", "")
+            if len(short_name) > 11:
+                short_name = short_name[:11]
+            short_fc = d.get("short") or ""
+            if len(short_fc) > 24:
+                short_fc = short_fc[:21] + "..."
+            pop = d.get("pop") or 0
+            pop_html = (f"<div style='margin-top:0.3rem;font-size:0.7rem;color:#1e40af;font-weight:600;'>"
+                        f"☔ {pop}%</div>") if pop >= 20 else ""
+            gdd_html = ""
+            if hi is not None and lo is not None:
+                g = _gdd50_predicted(float(hi), float(lo))
+                gdd_week_total += g
+                gdd_html = (f"<div style='margin-top:0.25rem;font-size:0.7rem;color:#6b7280;"
+                            f"letter-spacing:0.04em;'>GDD ≈ {g:.1f}</div>")
+            lo_html = (f"<span style='font-size:1rem;color:#9ca3af;font-weight:500;'>"
+                       f" / {lo}°</span>" if lo is not None else "")
+            divider = "" if i == len(days) - 1 else "border-right:1px solid #e5e7eb;"
+            date_label = d['date'].strftime('%b %d')
+            hi_display = f"{hi}" if hi is not None else "–"
+            # Build compact one-line HTML to avoid Streamlit markdown indent-as-code issues
+            cell = (
+                f'<div style="flex:1;text-align:center;padding:0.6rem 0.55rem;{divider}">'
+                f'<div style="font-size:1.9rem;line-height:1;margin-bottom:0.3rem;">{icon}</div>'
+                f'<div style="font-weight:700;font-size:0.88rem;color:#1a2330;">{short_name}</div>'
+                f'<div style="font-size:0.7rem;color:#9ca3af;letter-spacing:0.03em;margin-bottom:0.55rem;">{date_label}</div>'
+                f'<div style="font-size:1.7rem;font-weight:700;color:{hi_col};line-height:1;">{hi_display}°{lo_html}</div>'
+                f'<div style="font-size:0.72rem;margin-top:0.55rem;color:#6b7280;line-height:1.35;min-height:1.9em;">{short_fc}</div>'
+                f'{pop_html}{gdd_html}'
+                f'</div>'
+            )
+            cells_html.append(cell)
+
+        strip_html = (
+            '<div style="display:flex;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);'
+            'border-radius:10px;padding:0.4rem 0.2rem;margin-top:0.2rem;">'
+            + "".join(cells_html)
+            + '</div>'
+        )
+        st.html(strip_html)
+
+        footer_html = (
+            f'<div style="margin-top:1.1rem;font-size:0.85rem;color:#4b5563;">'
+            f'<strong style="color:#1a2330;">7-day GDD50 contribution</strong> from forecast: '
+            f'<span style="color:#0a3d3a;font-weight:700;">≈ {gdd_week_total:.1f}</span>'
+            f'&nbsp;·&nbsp; <span style="color:#9ca3af;font-size:0.8rem;">'
+            f'NWS api.weather.gov · refreshes every 6 hours</span></div>'
+        )
+        st.html(footer_html)
+else:
+    st.caption("NWS forecast unavailable right now — try refreshing the page.")
 
 st.divider()
 st.caption(

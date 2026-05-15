@@ -63,3 +63,23 @@ uv run streamlit run web/app.py
 ```
 
 Refresh cadence: re-run `python -m web.snapshot` whenever the canonical workbook has new data (typically after each weekly update). The dashboard reads only from `web/data.json` — no live workbook access — so it stays cheap and portable.
+
+### Deploying publicly (Streamlit Community Cloud)
+
+The repo is set up for one-click deploy to [share.streamlit.io](https://share.streamlit.io):
+
+1. **Push the repo to GitHub** (public or private — both work on the free tier).
+2. **Go to share.streamlit.io**, sign in with GitHub, click **New app**.
+3. **Pick this repo**, set the entry point to `web/app.py`, branch to `main`.
+4. Click Deploy. Streamlit Cloud reads `requirements.txt` + `runtime.txt` and serves the dashboard at a public `*.streamlit.app` URL within ~2 minutes.
+
+The cloud instance only sees `web/data.json` — your canonical workbook stays on your local machine. To refresh the live site after a weekly snapshot:
+
+```powershell
+uv run python -m web.snapshot
+git add web/data.json
+git commit -m "Snapshot YYYY-MM-DD"
+git push
+```
+
+Streamlit Cloud auto-redeploys on push. **Note:** `web/data.json` is committed publicly — it contains district-level yields, forecasts, and soil-moisture readings, all derived from public NASS / NOAA sources, so this is fine for the kind of side project this is.

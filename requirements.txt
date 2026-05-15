@@ -1,0 +1,9 @@
+# Runtime dependencies for the Streamlit dashboard deployed at Streamlit Cloud.
+# Only what web/app.py actually imports — much smaller than the full project's
+# pyproject.toml. The data pipeline (ec_iowa package, openpyxl, scipy, ...) is
+# not needed on the cloud because the dashboard reads only web/data.json.
+
+streamlit>=1.30
+plotly>=5.18
+pandas>=2.2
+requests>=2.31

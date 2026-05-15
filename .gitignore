@@ -9,7 +9,8 @@ dist/
 
 # uv / venv
 .venv/
-.python-version
+# Note: .python-version IS tracked — Streamlit Cloud reads it to pin the
+# Python version used by the deployed dashboard.
 
 # Secrets
 .env

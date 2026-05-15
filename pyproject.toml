@@ -3,23 +3,23 @@ name = "ec-iowa"
 version = "0.1.0"
 description = "EC Iowa District 60 corn progress data pipeline and yield forecast"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "openpyxl>=3.1",
     "requests>=2.31",
     "pandas>=2.2",
     "scipy>=1.13",
     "python-dotenv>=1.0",
+    # Dashboard deps — promoted from [web] optional extras to main deps
+    # so Streamlit Cloud's uv-sync installs them automatically.
+    "streamlit>=1.30",
+    "plotly>=5.18",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
-]
-web = [
-    "streamlit>=1.30",
-    "plotly>=5.18",
 ]
 
 [project.scripts]

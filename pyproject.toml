@@ -17,6 +17,10 @@ dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
 ]
+web = [
+    "streamlit>=1.30",
+    "plotly>=5.18",
+]
 
 [project.scripts]
 ec-iowa = "ec_iowa.cli:main"

@@ -37,6 +37,29 @@ src/ec_iowa/
   yield_model.py  # Regression fit + prediction
   gdd_stage.py    # Logistic crop-stage estimator
   cli.py          # weekly-update / backfill / verify / forecast
+
+web/              # Trader-facing dashboard (side project)
+  snapshot.py     # Extracts data.json from canonical workbook
+  app.py          # Streamlit app
+  data.json       # Last weekly snapshot (regenerated from snapshot.py)
 ```
 
 The canonical workbook is read/written in place at the OneDrive path configured in `config.WORKBOOK_PATH`. The local `workbooks/` directory is for one-off copies during testing — do not commit them.
+
+## Dashboard (side project)
+
+A Streamlit dashboard surfaces the current forecast + history + conditions for a trader-style consumer.
+
+```powershell
+# One-time
+uv sync --extra web
+
+# Each refresh (e.g., after a weekly-update)
+uv run python -m web.snapshot
+
+# Launch the dashboard
+uv run streamlit run web/app.py
+# -> opens at http://localhost:8501
+```
+
+Refresh cadence: re-run `python -m web.snapshot` whenever the canonical workbook has new data (typically after each weekly update). The dashboard reads only from `web/data.json` — no live workbook access — so it stays cheap and portable.

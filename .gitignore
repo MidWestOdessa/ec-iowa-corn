@@ -14,6 +14,9 @@ dist/
 
 # Secrets
 .env
+# Streamlit secrets — set APP_PASSWORD here for local dev, on the cloud via
+# share.streamlit.io > app > Settings > Secrets.
+.streamlit/secrets.toml
 
 # Cache: CASMA CSVs, pickled NOAA pulls, etc.
 cache/*

@@ -194,6 +194,53 @@ hr { border-color: var(--slate-200) !important; margin: 1.5rem 0 !important; }
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
+# ---- Password gate ----
+# Single shared password stored in Streamlit Cloud secrets (or .streamlit/secrets.toml
+# locally — gitignored). If APP_PASSWORD is not set anywhere, the gate fails open
+# with a warning, so local dev without secrets still works.
+def _check_password() -> bool:
+    if st.session_state.get("dashboard_authenticated"):
+        return True
+    try:
+        expected = st.secrets["APP_PASSWORD"]
+    except (KeyError, FileNotFoundError):
+        # No password configured — let through but warn (local dev case).
+        return True
+
+    # Render a centered login card matching the dashboard aesthetic.
+    st.html(
+        '<div style="max-width:420px;margin:8vh auto 1rem auto;text-align:center;">'
+        '<div style="font-size:3rem;margin-bottom:0.4rem;">🌽</div>'
+        '<h1 style="font-size:1.6rem;margin:0;color:#0a3d3a;font-weight:700;">'
+        'EC Iowa Corn Dashboard</h1>'
+        '<div style="color:#6b7280;font-size:0.95rem;margin-top:0.4rem;">'
+        'This dashboard is private. Enter the access password to continue.'
+        '</div></div>'
+    )
+    _, mid, _ = st.columns([1, 2, 1])
+    with mid:
+        pw = st.text_input(
+            "Password",
+            type="password",
+            key="pw_input",
+            label_visibility="collapsed",
+            placeholder="Password",
+        )
+    if pw:
+        if pw == expected:
+            st.session_state["dashboard_authenticated"] = True
+            st.rerun()
+        else:
+            _, mid, _ = st.columns([1, 2, 1])
+            with mid:
+                st.error("Incorrect password.")
+    return False
+
+
+if not _check_password():
+    st.stop()
+
+
 # ---- Load snapshot ----
 if not DATA.exists():
     st.error(f"Snapshot file not found: {DATA}.  Run `python -m web.snapshot` first.")

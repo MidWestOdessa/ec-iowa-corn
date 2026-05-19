@@ -148,7 +148,13 @@ def _get_with_retry(
     accept_404: bool = False,
 ) -> requests.Response:
     """GET with exponential backoff. If accept_404, returns 404 responses
-    without retrying or raising — caller decides what to do."""
+    without retrying or raising — caller decides what to do.
+
+    Also accepts HTTP 400 responses whose body contains an XML
+    ExceptionReport — these come from PyWPS when the requested data
+    hasn't been processed yet. The caller (which expects to parse a WPS
+    response anyway) gets to detect that and raise CasmaDataNotAvailable.
+    """
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
@@ -157,7 +163,10 @@ def _get_with_retry(
                 return r
             if accept_404 and r.status_code == 404:
                 return r
-            # Anything else: retry on 5xx, raise on 4xx (except handled 404s)
+            # HTTP 400 with a PyWPS exception report → let caller parse it.
+            if r.status_code == 400 and "ExceptionReport" in r.text:
+                return r
+            # Anything else: retry on 5xx, raise on 4xx
             if 500 <= r.status_code < 600:
                 last_exc = CasmaError(f"HTTP {r.status_code} from {url}")
             else:
@@ -173,10 +182,19 @@ def _get_with_retry(
 def _wps_extract_output_url(xml_text: str) -> str:
     """Pull the outputUrl LiteralData out of a WPS Execute response.
 
-    Raises CasmaDataNotAvailable if the server reports ProcessFailed
-    (typical for recent weeks where SMAP aggregation hasn't run yet).
+    Raises CasmaDataNotAvailable for two known error shapes:
+      1. <ows:ExceptionReport> at the document root (HTTP 400 path,
+         observed at CSISS as of ~mid-May 2026)
+      2. <wps:ProcessFailed> inside an ExecuteResponse (HTTP 200 path,
+         the original observed behavior)
     """
     root = ET.fromstring(xml_text)
+    # Case 1: top-level ExceptionReport
+    if root.tag == f"{{{WPS_NS['ows']}}}ExceptionReport":
+        ex_text = root.find(f".//{{{WPS_NS['ows']}}}ExceptionText")
+        detail = ex_text.text.strip() if (ex_text is not None and ex_text.text) else "WPS ExceptionReport"
+        raise CasmaDataNotAvailable(detail)
+    # Case 2: ProcessFailed inside ExecuteResponse
     if root.find(f".//{{{WPS_NS['wps']}}}ProcessFailed") is not None:
         ex_text = root.find(f".//{{{WPS_NS['ows']}}}ExceptionText")
         detail = ex_text.text.strip() if (ex_text is not None and ex_text.text) else "ProcessFailed"

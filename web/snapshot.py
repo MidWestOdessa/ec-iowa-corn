@@ -163,9 +163,28 @@ def main() -> None:
     }
 
     # ---- 4. Last 5 years weekly trajectories + 2026 ----
+    # For 2021-2025: read soil moisture from Crop Progress (hardcoded literals).
+    # For 2026: the Crop Progress soil rows are FORMULAS pulling from the
+    # Crop-CASMA archive, and openpyxl-with-data_only returns whatever Excel
+    # last cached (stale None if the user hasn't reopened in Excel after our
+    # CASMA writes). So for 2026, bypass the formulas and read soil moisture
+    # directly from the Crop-CASMA archive rows.
     comparison_years = [2021, 2022, 2023, 2024, 2025, 2026]
     history_weekly: dict[str, list[dict]] = {}
     stage_keys = ["planted", "emerged", "silking", "doughing", "dented", "corn_mature", "corn_harvested"]
+
+    # Build a Monday-date -> Crop-CASMA archive row index for 2026.
+    casma_row_by_monday: dict[date, int] = {}
+    for r in range(96, 132):
+        d_ca = ws_ca.cell(r, 1).value
+        if isinstance(d_ca, datetime):
+            d_ca = d_ca.date()
+        if isinstance(d_ca, date):
+            casma_row_by_monday[d_ca] = r
+
+    def _safe_float(v):
+        return float(v) if isinstance(v, (int, float)) else None
+
     for yr in comparison_years:
         if yr not in config.CROP_PROGRESS_YEAR_BLOCKS:
             continue
@@ -189,14 +208,31 @@ def main() -> None:
             for stage in stage_keys:
                 v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[stage], c).value
                 entry[stage] = float(v) if isinstance(v, (int, float)) else None
-            for key, off_key in [
-                ("top_vs", "topsoil_vs"), ("top_s", "topsoil_s"),
-                ("top_a", "topsoil_a"), ("top_su", "topsoil_su"),
-                ("sub_vs", "subsoil_vs"), ("sub_s", "subsoil_s"),
-                ("sub_a", "subsoil_a"), ("sub_su", "subsoil_su"),
-            ]:
-                v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[off_key], c).value
-                entry[key] = float(v) if isinstance(v, (int, float)) else None
+            # Soil moisture: source switches by year
+            if yr == 2026:
+                ca_row = casma_row_by_monday.get(d)
+                if ca_row is not None:
+                    entry["top_vs"] = _safe_float(ws_ca.cell(ca_row, 3).value)
+                    entry["top_s"]  = _safe_float(ws_ca.cell(ca_row, 4).value)
+                    entry["top_a"]  = _safe_float(ws_ca.cell(ca_row, 5).value)
+                    entry["top_su"] = _safe_float(ws_ca.cell(ca_row, 6).value)
+                    entry["sub_vs"] = _safe_float(ws_ca.cell(ca_row, 7).value)
+                    entry["sub_s"]  = _safe_float(ws_ca.cell(ca_row, 8).value)
+                    entry["sub_a"]  = _safe_float(ws_ca.cell(ca_row, 9).value)
+                    entry["sub_su"] = _safe_float(ws_ca.cell(ca_row, 10).value)
+                else:
+                    for k in ("top_vs", "top_s", "top_a", "top_su",
+                              "sub_vs", "sub_s", "sub_a", "sub_su"):
+                        entry[k] = None
+            else:
+                for key, off_key in [
+                    ("top_vs", "topsoil_vs"), ("top_s", "topsoil_s"),
+                    ("top_a", "topsoil_a"), ("top_su", "topsoil_su"),
+                    ("sub_vs", "subsoil_vs"), ("sub_s", "subsoil_s"),
+                    ("sub_a", "subsoil_a"), ("sub_su", "subsoil_su"),
+                ]:
+                    v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[off_key], c).value
+                    entry[key] = _safe_float(v)
             weeks_out.append(entry)
         history_weekly[str(yr)] = weeks_out
 

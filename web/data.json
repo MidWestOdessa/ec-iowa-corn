@@ -3700,7 +3700,7 @@
         "iso_week": 21,
         "gdd": null,
         "planted": 99.0,
-        "emerged": 0.0,
+        "emerged": 3.0,
         "silking": null,
         "doughing": null,
         "dented": null,
@@ -4327,9 +4327,9 @@
         "latest_iso_week": 21
       },
       "emerged": {
-        "latest_pct": null,
-        "latest_monday": null,
-        "latest_iso_week": null
+        "latest_pct": 3.0,
+        "latest_monday": "2026-05-18",
+        "latest_iso_week": 21
       },
       "silking": {
         "latest_pct": null,

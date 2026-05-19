@@ -566,23 +566,18 @@ if hw:
                     all_weeks.append(w["iso_week"])
         latest_2026_week = max(all_weeks) if all_weeks else None
 
-    # Find latest 2026 week with soil-moisture data — distinct from the
-    # crop-progress active week, because CASMA can lag behind manual Planted
-    # entries by several weeks. Soil-moisture comparison uses THIS week so
-    # the 2026 column actually has values to compare.
+    # ---- Week selector ----------------------------------------------------
+    # Drives BOTH the crop-progress and soil-moisture comparison tables below.
+    # Defaults to the latest 2026 active week (where Planted/Emerged > 0).
+    # User can pick any ISO week from 2026's full date range to explore.
+    week_pool = hw.get("2026") or []
+
     def _has_moisture(w: dict) -> bool:
         for k in ("top_vs", "top_s", "top_a", "top_su",
                  "sub_vs", "sub_s", "sub_a", "sub_su"):
             if isinstance(w.get(k), (int, float)):
                 return True
         return False
-
-    latest_2026_moisture_week = None
-    if "2026" in selected_years:
-        for w in (hw.get("2026") or [])[::-1]:
-            if _has_moisture(w):
-                latest_2026_moisture_week = w["iso_week"]
-                break
 
     def _label_for_week(year: str, iso_wk: int | None) -> str | None:
         if iso_wk is None:
@@ -593,91 +588,114 @@ if hw:
                 return f"{d.strftime('%b')} {d.day}"
         return None
 
-    # Crop-progress week label (for the left card)
-    latest_2026_label = _label_for_week("2026", latest_2026_week)
-    label_at = f"week of {latest_2026_label}" if latest_2026_label else f"wk {latest_2026_week}"
+    # Compute latest weeks with data for the dropdown HINT text.
+    latest_moisture_week_2026 = None
+    for w in week_pool[::-1]:
+        if _has_moisture(w):
+            latest_moisture_week_2026 = w["iso_week"]
+            break
 
-    # Soil-moisture week label (for the right card)
-    moisture_label = _label_for_week("2026", latest_2026_moisture_week)
-    moisture_label_at = (
-        f"week of {moisture_label}" if moisture_label else f"wk {latest_2026_moisture_week}"
+    # Build the dropdown options from 2026's full dates row.
+    def _fmt_week(w: dict) -> str:
+        d = datetime.fromisoformat(w["monday"]).date()
+        tag = ""
+        if w["iso_week"] == latest_2026_week:
+            tag = "  ← latest crop progress"
+        elif w["iso_week"] == latest_moisture_week_2026:
+            tag = "  ← latest CASMA"
+        return f"Week {w['iso_week']:02d}  ·  Mon {d.strftime('%b %d')}{tag}"
+
+    week_labels = [_fmt_week(w) for w in week_pool]
+    label_to_iso = {_fmt_week(w): w["iso_week"] for w in week_pool}
+    default_idx = 0
+    for i, w in enumerate(week_pool):
+        if w["iso_week"] == latest_2026_week:
+            default_idx = i
+            break
+
+    selected_label = st.selectbox(
+        "Comparison week",
+        options=week_labels,
+        index=default_idx,
+        help="Pick which ISO week the crop-progress + soil-moisture comparison tables below use.",
     )
+    selected_week = label_to_iso[selected_label]
+    selected_week_label = _label_for_week("2026", selected_week) or f"wk {selected_week}"
+    label_at = f"week of {selected_week_label}"
 
     cmp1, cmp2 = st.columns(2, gap="medium")
 
     with cmp1:
         with st.container(border=True):
-            st.markdown(f"### Crop progress at {label_at}" if latest_2026_week else "### Crop progress comparison")
-            if latest_2026_week is None:
-                st.caption("No selected year has stage data yet.")
-            else:
-                stage_labels = {
-                    "planted": "Planted", "emerged": "Emerged",
-                    "silking": "Silking", "doughing": "Doughing",
-                    "dented": "Dented", "corn_mature": "Mature",
-                    "corn_harvested": "Harvested",
-                }
-                rows = []
-                for stage, label in stage_labels.items():
-                    row = {"Stage": label}
-                    for yr in selected_years:
-                        weeks = hw.get(yr) or []
-                        match = next((w for w in weeks if w["iso_week"] == latest_2026_week), None)
-                        v = match.get(stage) if match else None
-                        row[yr] = f"{v:.0f}%" if isinstance(v, (int, float)) else "—"
-                    rows.append(row)
-                df_cmp = pd.DataFrame(rows)
-                st.dataframe(df_cmp, hide_index=True, use_container_width=True, height=290)
-                st.caption(f"EC district NASS / GDD-model % at ISO week {latest_2026_week} ({label_at}).")
+            st.markdown(f"### Crop progress at {label_at}")
+            stage_labels = {
+                "planted": "Planted", "emerged": "Emerged",
+                "silking": "Silking", "doughing": "Doughing",
+                "dented": "Dented", "corn_mature": "Mature",
+                "corn_harvested": "Harvested",
+            }
+            rows = []
+            for stage, label in stage_labels.items():
+                row = {"Stage": label}
+                for yr in selected_years:
+                    weeks = hw.get(yr) or []
+                    match = next((w for w in weeks if w["iso_week"] == selected_week), None)
+                    v = match.get(stage) if match else None
+                    row[yr] = f"{v:.0f}%" if isinstance(v, (int, float)) else "—"
+                rows.append(row)
+            df_cmp = pd.DataFrame(rows)
+            st.dataframe(df_cmp, hide_index=True, use_container_width=True, height=290)
+            st.caption(f"EC district NASS / GDD-model % at ISO week {selected_week} ({label_at}).")
 
     with cmp2:
         with st.container(border=True):
-            st.markdown(
-                f"### Soil moisture at {moisture_label_at}"
-                if latest_2026_moisture_week else "### Soil moisture comparison"
+            st.markdown(f"### Soil moisture at {label_at}")
+            rows = []
+            for depth_label, vs_key, s_key in [
+                ("Topsoil VS+S (stress)", "top_vs", "top_s"),
+                ("Subsoil VS+S (stress)", "sub_vs", "sub_s"),
+            ]:
+                row = {"Metric": depth_label}
+                for yr in selected_years:
+                    weeks = hw.get(yr) or []
+                    match = next((w for w in weeks if w["iso_week"] == selected_week), None)
+                    if match and isinstance(match.get(vs_key), (int, float)) and isinstance(match.get(s_key), (int, float)):
+                        v = match[vs_key] + match[s_key]
+                        row[yr] = f"{v:.1f}%"
+                    else:
+                        row[yr] = "—"
+                rows.append(row)
+            for depth_label, su_key in [
+                ("Topsoil Surplus (wet)", "top_su"),
+                ("Subsoil Surplus (wet)", "sub_su"),
+            ]:
+                row = {"Metric": depth_label}
+                for yr in selected_years:
+                    weeks = hw.get(yr) or []
+                    match = next((w for w in weeks if w["iso_week"] == selected_week), None)
+                    v = match.get(su_key) if match else None
+                    row[yr] = f"{v:.1f}%" if isinstance(v, (int, float)) else "—"
+                rows.append(row)
+            df_stress = pd.DataFrame(rows)
+            st.dataframe(df_stress, hide_index=True, use_container_width=True, height=215)
+
+            # Footer note: which weeks 2026 actually has data for, since
+            # picking a too-recent week shows "—" in the 2026 column.
+            stage_info = (
+                f"2026 latest crop progress: <strong>wk {latest_2026_week}</strong>"
+                if latest_2026_week is not None else "2026 crop progress: none"
             )
-            if latest_2026_moisture_week is None:
-                st.caption("No 2026 soil-moisture data yet.")
-            else:
-                week = latest_2026_moisture_week
-                rows = []
-                for depth_label, vs_key, s_key in [
-                    ("Topsoil VS+S (stress)", "top_vs", "top_s"),
-                    ("Subsoil VS+S (stress)", "sub_vs", "sub_s"),
-                ]:
-                    row = {"Metric": depth_label}
-                    for yr in selected_years:
-                        weeks = hw.get(yr) or []
-                        match = next((w for w in weeks if w["iso_week"] == week), None)
-                        if match and isinstance(match.get(vs_key), (int, float)) and isinstance(match.get(s_key), (int, float)):
-                            v = match[vs_key] + match[s_key]
-                            row[yr] = f"{v:.1f}%"
-                        else:
-                            row[yr] = "—"
-                    rows.append(row)
-                for depth_label, su_key in [
-                    ("Topsoil Surplus (wet)", "top_su"),
-                    ("Subsoil Surplus (wet)", "sub_su"),
-                ]:
-                    row = {"Metric": depth_label}
-                    for yr in selected_years:
-                        weeks = hw.get(yr) or []
-                        match = next((w for w in weeks if w["iso_week"] == week), None)
-                        v = match.get(su_key) if match else None
-                        row[yr] = f"{v:.1f}%" if isinstance(v, (int, float)) else "—"
-                    rows.append(row)
-                df_stress = pd.DataFrame(rows)
-                st.dataframe(df_stress, hide_index=True, use_container_width=True, height=215)
-                stale_weeks = (latest_2026_week or week) - week
-                stale_note = (
-                    f" &nbsp; · &nbsp; <em>2026 CASMA lags crop progress by {stale_weeks} week(s)</em>"
-                    if stale_weeks > 0 else ""
-                )
-                st.html(
-                    f"<div style='font-size:0.82rem;color:#6b7280;margin-top:0.3rem;'>"
-                    f"VS+S = drought stress; Surplus = excess moisture. ISO week {week} ({moisture_label_at})."
-                    f"{stale_note}</div>"
-                )
+            moisture_info = (
+                f"2026 latest CASMA: <strong>wk {latest_moisture_week_2026}</strong>"
+                if latest_moisture_week_2026 is not None else "2026 CASMA: none"
+            )
+            st.html(
+                f"<div style='font-size:0.82rem;color:#6b7280;margin-top:0.3rem;'>"
+                f"VS+S = drought stress; Surplus = excess moisture. "
+                f"At ISO week {selected_week} ({label_at}). "
+                f"&nbsp;·&nbsp; {stage_info} &nbsp;·&nbsp; {moisture_info}"
+                f"</div>"
+            )
 
 # ---- 7-day weather outlook (NWS, live, cached 6 hours) ----
 @st.cache_data(ttl=6 * 3600, show_spinner=False)

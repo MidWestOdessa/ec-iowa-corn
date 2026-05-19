@@ -264,25 +264,33 @@ st.markdown(
 
 
 # ---- Hero forecast card ----
+# We treat the headline as "Pending" until we have a real peak-July SubStress
+# observation. Before that, what the model spits out is a preliminary value
+# computed against historical-median stress — useful as context but NOT a
+# tradable forecast. We surface that as small print, not the hero number.
 total_bu = forecast['indicative_bu_ac'] * snap['total_corn_acres']
 st.markdown(
     f"""<div class="hero-card">
-        <h2>Indicative {forecast['year']} yield forecast</h2>
+        <h2>{forecast['year']} crop year yield forecast</h2>
         <div>
-            <span class="hero-value">{forecast['indicative_bu_ac']:.1f}</span>
-            <span class="hero-unit">bu / ac</span>
+            <span style="font-size:3.4rem;font-weight:800;color:#d8af52;font-style:italic;
+                         letter-spacing:-0.02em;line-height:1;">Pending</span>
         </div>
         <div class="hero-range">
-            95% band: <strong>{forecast['band_low_95']:.1f}</strong> &mdash; <strong>{forecast['band_high_95']:.1f}</strong> bu/ac
-            &nbsp;·&nbsp; LOOCV MAE = {forecast['loocv_mae']:.2f}
+            Final forecast lands once peak-July SubStress is observed (late July).
         </div>
-        <div class="hero-bushels">
-            ≈ {total_bu/1_000_000:.1f}M bushels district total at forecast
+        <div class="hero-sub" style="margin-top:1rem;">
+            <strong style="color:rgba(255,255,255,0.92);">Preliminary placeholder</strong>
+            (using historical-median stress, NOT 2026's actual signal):
+            <span style="color:rgba(255,255,255,0.85);">
+            ~{forecast['indicative_bu_ac']:.1f} bu/ac &nbsp;·&nbsp;
+            95% band {forecast['band_low_95']:.1f} – {forecast['band_high_95']:.1f}
+            </span>
         </div>
-        <div class="hero-sub">
-            Model: {forecast['method']}. Peak-July SubStress not yet observed —
-            forecast firms up late July. Currently using {forecast['inputs']['substress_jul_used']}% as the
-            stand-in (10-year median).
+        <div class="hero-sub" style="margin-top:0.5rem;font-size:0.85rem;">
+            Model: {forecast['method']}. Real 2026 SubStress_Jul not yet
+            observed; using {forecast['inputs']['substress_jul_used']}% (10-year median)
+            as a stand-in. Don't trade on this — it's a sanity check, not a forecast.
         </div>
     </div>""",
     unsafe_allow_html=True,

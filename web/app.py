@@ -4,6 +4,7 @@ Usage:  uv run streamlit run web/app.py
 """
 from __future__ import annotations
 import json
+import statistics
 from datetime import date, datetime
 from pathlib import Path
 
@@ -501,30 +502,96 @@ if hw:
         st.warning("Select at least one year above.")
         st.stop()
 
-    # 4a. GDD trajectory overlay
+    # 4a. GDD trajectory — view-mode toggle
     with st.container(border=True):
+        view_mode = st.radio(
+            "GDD trajectory view",
+            options=["Historical range + current year", "Year overlay"],
+            horizontal=True,
+            label_visibility="collapsed",
+            help="The range view shades the min/max envelope across all "
+                 "selected historical years and overlays 2026 on top — easier "
+                 "to see where this year sits relative to normal. The overlay "
+                 "view draws each year as its own line (gets crowded with 4+ "
+                 "years).",
+        )
         st.markdown(f"### GDD50 trajectory — {min(selected_years)} → {max(selected_years)}")
-        st.caption("Cumulative GDD by ISO week. 2026 (solid teal) vs other selected years.")
+
         fig_gdd = go.Figure()
-        for yr_str in selected_years:
-            weeks = hw.get(yr_str) or []
-            xs, ys = [], []
-            for w in weeks:
-                if w.get("gdd") is not None:
-                    xs.append(w["iso_week"])
-                    ys.append(w["gdd"])
-            if not xs:
-                continue
-            is_current = (yr_str == "2026")
-            fig_gdd.add_trace(go.Scatter(
-                x=xs, y=ys, mode='lines+markers', name=yr_str,
-                line=dict(
-                    color=YEAR_COLORS.get(yr_str, '#888'),
-                    width=4 if is_current else 2,
-                    dash=YEAR_DASH.get(yr_str, 'solid'),
-                ),
-                marker=dict(size=8 if is_current else 5),
-            ))
+
+        if view_mode == "Historical range + current year":
+            # Compute per-ISO-week min/median/max across selected non-2026 years
+            historical_years = [y for y in selected_years if y != "2026"]
+            by_week: dict[int, list[float]] = {}
+            for yr_str in historical_years:
+                for w in hw.get(yr_str) or []:
+                    g = w.get("gdd")
+                    if isinstance(g, (int, float)):
+                        by_week.setdefault(w["iso_week"], []).append(float(g))
+            sorted_weeks = sorted(by_week.keys())
+
+            if sorted_weeks:
+                medians = [statistics.median(by_week[wk]) for wk in sorted_weeks]
+                mins    = [min(by_week[wk]) for wk in sorted_weeks]
+                maxs    = [max(by_week[wk]) for wk in sorted_weeks]
+
+                # Shaded min-max band (drawn first as max line, then min with fill='tonexty')
+                fig_gdd.add_trace(go.Scatter(
+                    x=sorted_weeks, y=maxs,
+                    mode='lines', line=dict(width=0, color='rgba(108,117,125,0)'),
+                    showlegend=False, hoverinfo='skip',
+                ))
+                fig_gdd.add_trace(go.Scatter(
+                    x=sorted_weeks, y=mins,
+                    mode='lines', line=dict(width=0, color='rgba(108,117,125,0)'),
+                    fill='tonexty', fillcolor='rgba(108, 117, 125, 0.20)',
+                    name=f'Historical min-max ({len(historical_years)} yrs)',
+                    hoverinfo='skip',
+                ))
+                # Median line
+                fig_gdd.add_trace(go.Scatter(
+                    x=sorted_weeks, y=medians,
+                    mode='lines', name='Historical median',
+                    line=dict(color='#6b7280', width=2, dash='dot'),
+                ))
+
+            # 2026 (current year) — bold on top
+            if "2026" in selected_years:
+                xs, ys = [], []
+                for w in hw.get("2026") or []:
+                    g = w.get("gdd")
+                    if isinstance(g, (int, float)):
+                        xs.append(w["iso_week"])
+                        ys.append(g)
+                if xs:
+                    fig_gdd.add_trace(go.Scatter(
+                        x=xs, y=ys,
+                        mode='lines+markers', name='2026 (current)',
+                        line=dict(color='#0a3d3a', width=4),
+                        marker=dict(size=9, color='#0a3d3a'),
+                    ))
+        else:
+            # Multi-year overlay (legacy view)
+            for yr_str in selected_years:
+                weeks = hw.get(yr_str) or []
+                xs, ys = [], []
+                for w in weeks:
+                    if w.get("gdd") is not None:
+                        xs.append(w["iso_week"])
+                        ys.append(w["gdd"])
+                if not xs:
+                    continue
+                is_current = (yr_str == "2026")
+                fig_gdd.add_trace(go.Scatter(
+                    x=xs, y=ys, mode='lines+markers', name=yr_str,
+                    line=dict(
+                        color=YEAR_COLORS.get(yr_str, '#888'),
+                        width=4 if is_current else 2,
+                        dash=YEAR_DASH.get(yr_str, 'solid'),
+                    ),
+                    marker=dict(size=8 if is_current else 5),
+                ))
+
         fig_gdd.update_layout(
             xaxis_title='ISO week',
             yaxis_title='GDD50 cumulative',

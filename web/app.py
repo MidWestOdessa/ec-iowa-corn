@@ -700,6 +700,8 @@ if hw:
                 "silking": "Silking", "doughing": "Doughing",
                 "dented": "Dented", "corn_mature": "Mature",
                 "corn_harvested": "Harvested",
+                "ge_state": "G+E condition (state)",
+                "pf_state": "P+F condition (state)",
             }
             rows = []
             for stage, label in stage_labels.items():
@@ -711,8 +713,11 @@ if hw:
                     row[yr] = f"{v:.0f}%" if isinstance(v, (int, float)) else "—"
                 rows.append(row)
             df_cmp = pd.DataFrame(rows)
-            st.dataframe(df_cmp, hide_index=True, use_container_width=True, height=290)
-            st.caption(f"EC district NASS / GDD-model % at ISO week {selected_week} ({label_at}).")
+            st.dataframe(df_cmp, hide_index=True, use_container_width=True, height=330)
+            st.caption(
+                f"EC district NASS / GDD-model % at ISO week {selected_week} ({label_at}). "
+                "G+E and P+F are Iowa state-level corn condition ratings."
+            )
 
     with cmp2:
         with st.container(border=True):

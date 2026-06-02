@@ -172,6 +172,8 @@ def main() -> None:
     comparison_years = [2021, 2022, 2023, 2024, 2025, 2026]
     history_weekly: dict[str, list[dict]] = {}
     stage_keys = ["planted", "emerged", "silking", "doughing", "dented", "corn_mature", "corn_harvested"]
+    # State-level condition rows added 2026-05-30 (NASS resumed publishing)
+    condition_keys = ["pf_state", "ge_state"]
 
     # Build a Monday-date -> Crop-CASMA archive row index for 2026.
     casma_row_by_monday: dict[date, int] = {}
@@ -208,6 +210,9 @@ def main() -> None:
             for stage in stage_keys:
                 v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[stage], c).value
                 entry[stage] = float(v) if isinstance(v, (int, float)) else None
+            for cond_key in condition_keys:
+                v = ws_cp.cell(dr + config.DATA_ROW_OFFSETS[cond_key], c).value
+                entry[cond_key] = float(v) if isinstance(v, (int, float)) else None
             # Soil moisture: source switches by year
             if yr == 2026:
                 ca_row = casma_row_by_monday.get(d)

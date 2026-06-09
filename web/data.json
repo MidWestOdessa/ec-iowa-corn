@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-02",
+  "as_of": "2026-06-09",
   "district": "EC Iowa (NASS District 60)",
   "counties": [
     "Benton",
@@ -3992,14 +3992,14 @@
         "corn_harvested": null,
         "pf_state": null,
         "ge_state": null,
-        "top_vs": null,
-        "top_s": null,
-        "top_a": null,
-        "top_su": null,
-        "sub_vs": null,
-        "sub_s": null,
-        "sub_a": null,
-        "sub_su": null
+        "top_vs": 0.44,
+        "top_s": 0.0,
+        "top_a": 58.58,
+        "top_su": 40.98,
+        "sub_vs": 0.44,
+        "sub_s": 0.0,
+        "sub_a": 69.81,
+        "sub_su": 29.75
       },
       {
         "monday": "2026-05-04",
@@ -4014,14 +4014,14 @@
         "corn_harvested": null,
         "pf_state": null,
         "ge_state": null,
-        "top_vs": null,
-        "top_s": null,
-        "top_a": null,
-        "top_su": null,
-        "sub_vs": null,
-        "sub_s": null,
-        "sub_a": null,
-        "sub_su": null
+        "top_vs": 0.44,
+        "top_s": 0.0,
+        "top_a": 89.87,
+        "top_su": 9.69,
+        "sub_vs": 0.44,
+        "sub_s": 3.65,
+        "sub_a": 81.2,
+        "sub_su": 14.71
       },
       {
         "monday": "2026-05-11",
@@ -4036,14 +4036,14 @@
         "corn_harvested": null,
         "pf_state": null,
         "ge_state": null,
-        "top_vs": null,
-        "top_s": null,
-        "top_a": null,
-        "top_su": null,
-        "sub_vs": null,
-        "sub_s": null,
-        "sub_a": null,
-        "sub_su": null
+        "top_vs": 0.44,
+        "top_s": 7.85,
+        "top_a": 82.81,
+        "top_su": 8.9,
+        "sub_vs": 0.44,
+        "sub_s": 6.61,
+        "sub_a": 88.23,
+        "sub_su": 4.72
       },
       {
         "monday": "2026-05-18",
@@ -4058,21 +4058,21 @@
         "corn_harvested": null,
         "pf_state": null,
         "ge_state": null,
-        "top_vs": null,
-        "top_s": null,
-        "top_a": null,
-        "top_su": null,
-        "sub_vs": null,
-        "sub_s": null,
-        "sub_a": null,
-        "sub_su": null
+        "top_vs": 7.53,
+        "top_s": 8.0,
+        "top_a": 79.17,
+        "top_su": 5.3,
+        "sub_vs": 1.55,
+        "sub_s": 6.87,
+        "sub_a": 85.17,
+        "sub_su": 6.41
       },
       {
         "monday": "2026-05-25",
         "iso_week": 22,
-        "gdd": null,
+        "gdd": 423,
         "planted": null,
-        "emerged": 83.0,
+        "emerged": 91.0,
         "silking": null,
         "doughing": null,
         "dented": null,
@@ -4094,7 +4094,7 @@
         "iso_week": 23,
         "gdd": null,
         "planted": null,
-        "emerged": 92.0,
+        "emerged": 98.0,
         "silking": null,
         "doughing": null,
         "dented": null,
@@ -4687,19 +4687,19 @@
   },
   "conditions": {
     "latest_casma": {
-      "monday": "2026-04-20",
-      "iso_week": 17,
+      "monday": "2026-05-18",
+      "iso_week": 21,
       "top": {
-        "vs": 0,
-        "s": 0.44,
-        "a": 60.35,
-        "su": 39.21
+        "vs": 7.53,
+        "s": 8,
+        "a": 79.17,
+        "su": 5.3
       },
       "sub": {
-        "vs": 0.44,
-        "s": 0,
-        "a": 65.76,
-        "su": 33.8
+        "vs": 1.55,
+        "s": 6.87,
+        "a": 85.17,
+        "su": 6.41
       }
     },
     "gdd_series": [
@@ -4734,6 +4734,10 @@
       {
         "monday": "2026-05-18",
         "gdd": 275.5
+      },
+      {
+        "monday": "2026-05-25",
+        "gdd": 423.0
       }
     ],
     "crop_progress": {
@@ -4743,7 +4747,7 @@
         "latest_iso_week": 21
       },
       "emerged": {
-        "latest_pct": 92.0,
+        "latest_pct": 98.0,
         "latest_monday": "2026-06-01",
         "latest_iso_week": 23
       },

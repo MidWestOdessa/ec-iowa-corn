@@ -4775,6 +4775,16 @@
         "latest_pct": null,
         "latest_monday": null,
         "latest_iso_week": null
+      },
+      "pf_state": {
+        "latest_pct": 16.0,
+        "latest_monday": "2026-06-08",
+        "latest_iso_week": 24
+      },
+      "ge_state": {
+        "latest_pct": 84.0,
+        "latest_monday": "2026-06-08",
+        "latest_iso_week": 24
       }
     }
   },

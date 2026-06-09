@@ -134,10 +134,13 @@ def main() -> None:
         if isinstance(g, (int, float)):
             gdd_series.append({"monday": _date_safe(d), "gdd": float(g)})
 
-    # Crop progress (most recent non-zero values per stage)
+    # Crop progress + state-level conditions (most recent reported values).
+    # Conditions (P+F, G+E) are stored with the same shape as stages so the
+    # dashboard can render them in the same table.
     stages = ["planted", "emerged", "silking", "doughing", "dented", "corn_mature", "corn_harvested"]
+    condition_rows = ["pf_state", "ge_state"]
     crop_progress = {}
-    for stage in stages:
+    for stage in stages + condition_rows:
         row = dates_row + config.DATA_ROW_OFFSETS[stage]
         latest_val = latest_date = latest_wk = None
         for c in range(2, 38):
@@ -146,7 +149,6 @@ def main() -> None:
             if isinstance(v, (int, float)) and v > 0 and d is not None:
                 latest_val = float(v)
                 latest_date = _date_safe(d)
-                # compute ISO week from date
                 if isinstance(d, datetime):
                     d = d.date()
                 latest_wk = d.isocalendar()[1] if hasattr(d, "isocalendar") else None

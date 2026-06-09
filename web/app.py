@@ -449,27 +449,29 @@ with c2:
 # Crop progress
 with c3:
     with st.container(border=True):
-        st.markdown("### Crop progress")
+        st.markdown("### Crop progress + condition")
         cp = conditions['crop_progress']
         rows = []
         label_map = {
             "planted": "Planted", "emerged": "Emerged", "silking": "Silking",
             "doughing": "Doughing", "dented": "Dented",
             "corn_mature": "Mature", "corn_harvested": "Harvested",
+            "ge_state": "G+E condition (state)",
+            "pf_state": "P+F condition (state)",
         }
         for k, label in label_map.items():
-            info = cp[k]
-            if info['latest_pct'] is not None:
+            info = cp.get(k)
+            if info and info.get('latest_pct') is not None:
                 rows.append({
-                    "Stage": label,
+                    "Metric": label,
                     "%": f"{info['latest_pct']:.0f}",
                     "Wk": info['latest_iso_week'],
                     "As of": info['latest_monday'],
                 })
         if rows:
-            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=300)
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=340)
         else:
-            st.caption("No stages have nonzero values yet.")
+            st.caption("No data yet.")
 
 # ---- Multi-year comparison ----
 hw = snap.get("history_weekly", {})

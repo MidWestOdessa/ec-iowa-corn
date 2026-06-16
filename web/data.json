@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-06-09",
+  "as_of": "2026-06-16",
   "district": "EC Iowa (NASS District 60)",
   "counties": [
     "Benton",
@@ -4080,19 +4080,19 @@
         "corn_harvested": null,
         "pf_state": null,
         "ge_state": null,
-        "top_vs": null,
-        "top_s": null,
-        "top_a": null,
-        "top_su": null,
-        "sub_vs": null,
-        "sub_s": null,
-        "sub_a": null,
-        "sub_su": null
+        "top_vs": 15.52,
+        "top_s": 29.68,
+        "top_a": 54.8,
+        "top_su": 0.0,
+        "sub_vs": 7.05,
+        "sub_s": 8.19,
+        "sub_a": 83.04,
+        "sub_su": 1.73
       },
       {
         "monday": "2026-06-01",
         "iso_week": 23,
-        "gdd": null,
+        "gdd": 578,
         "planted": null,
         "emerged": 98.0,
         "silking": null,
@@ -4144,8 +4144,8 @@
         "dented": null,
         "corn_mature": null,
         "corn_harvested": null,
-        "pf_state": null,
-        "ge_state": null,
+        "pf_state": 20.0,
+        "ge_state": 79.0,
         "top_vs": null,
         "top_s": null,
         "top_a": null,
@@ -4687,19 +4687,19 @@
   },
   "conditions": {
     "latest_casma": {
-      "monday": "2026-05-18",
-      "iso_week": 21,
+      "monday": "2026-05-25",
+      "iso_week": 22,
       "top": {
-        "vs": 7.53,
-        "s": 8,
-        "a": 79.17,
-        "su": 5.3
+        "vs": 15.52,
+        "s": 29.68,
+        "a": 54.8,
+        "su": 0
       },
       "sub": {
-        "vs": 1.55,
-        "s": 6.87,
-        "a": 85.17,
-        "su": 6.41
+        "vs": 7.05,
+        "s": 8.19,
+        "a": 83.04,
+        "su": 1.73
       }
     },
     "gdd_series": [
@@ -4738,6 +4738,10 @@
       {
         "monday": "2026-05-25",
         "gdd": 423.0
+      },
+      {
+        "monday": "2026-06-01",
+        "gdd": 578.0
       }
     ],
     "crop_progress": {
@@ -4777,14 +4781,14 @@
         "latest_iso_week": null
       },
       "pf_state": {
-        "latest_pct": 16.0,
-        "latest_monday": "2026-06-08",
-        "latest_iso_week": 24
+        "latest_pct": 20.0,
+        "latest_monday": "2026-06-15",
+        "latest_iso_week": 25
       },
       "ge_state": {
-        "latest_pct": 84.0,
-        "latest_monday": "2026-06-08",
-        "latest_iso_week": 24
+        "latest_pct": 79.0,
+        "latest_monday": "2026-06-15",
+        "latest_iso_week": 25
       }
     }
   },

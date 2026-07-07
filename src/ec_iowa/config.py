@@ -129,7 +129,13 @@ CASMA_NASS_SUBSTRESS_CALIBRATION = {
 GDD_STAGE_PARAMS: dict[str, dict[str, float]] = {
     "planted":        {"GDD50":   56.6, "k": 0.02243, "r_squared": 0.765, "n": 103},
     "emerged":        {"GDD50":  199.9, "k": 0.01053, "r_squared": 0.843, "n":  99},
-    "silking":        {"GDD50": 1387.8, "k": 0.00723, "r_squared": 0.917, "n":  88},
+    # GDD50 manually shifted 1387.8->1550 on 2026-07-06: the 16-yr-refit
+    # curve ran ~8-9 days early on silking ONSET vs EC Iowa field reads
+    # (showed 4% at Jun 22 / GDD 961; reality was ~0% then, ~4% by Jul 6 /
+    # GDD ~1108). k and the old-fit r_squared are unchanged — this is a
+    # single-point onset adjustment, not a refit. Revisit with more 2026
+    # silking observations if needed.
+    "silking":        {"GDD50": 1550.0, "k": 0.00723, "r_squared": 0.917, "n":  88},
     "doughing":       {"GDD50": 1843.8, "k": 0.00476, "r_squared": 0.824, "n": 108},
     "dented":         {"GDD50": 2221.2, "k": 0.00562, "r_squared": 0.915, "n": 115},
     "corn_mature":    {"GDD50": 2619.1, "k": 0.00799, "r_squared": 0.792, "n": 102},

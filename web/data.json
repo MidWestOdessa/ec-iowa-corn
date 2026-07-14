@@ -4205,7 +4205,7 @@
         "gdd": null,
         "planted": null,
         "emerged": null,
-        "silking": 40.0,
+        "silking": null,
         "doughing": null,
         "dented": null,
         "corn_mature": null,
@@ -4227,7 +4227,7 @@
         "gdd": null,
         "planted": null,
         "emerged": null,
-        "silking": null,
+        "silking": 40.0,
         "doughing": null,
         "dented": null,
         "corn_mature": null,
@@ -4773,8 +4773,8 @@
       },
       "silking": {
         "latest_pct": 40.0,
-        "latest_monday": "2026-07-06",
-        "latest_iso_week": 28
+        "latest_monday": "2026-07-13",
+        "latest_iso_week": 29
       },
       "doughing": {
         "latest_pct": null,

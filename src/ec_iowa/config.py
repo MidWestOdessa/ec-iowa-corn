@@ -129,11 +129,15 @@ CASMA_NASS_SUBSTRESS_CALIBRATION = {
 GDD_STAGE_PARAMS: dict[str, dict[str, float]] = {
     "planted":        {"GDD50":   56.6, "k": 0.02243, "r_squared": 0.765, "n": 103},
     "emerged":        {"GDD50":  199.9, "k": 0.01053, "r_squared": 0.843, "n":  99},
-    # GDD50 manually shifted 1387.8->1550 (2026-07-06) ->1600 (2026-07-14):
-    # the 16-yr-refit curve ran early on silking ONSET vs EC Iowa field reads.
-    # 1600 gives ~4% at GDD 1159 (wk ending Jul 5, matching the user's read).
-    # k and old-fit r_squared unchanged — onset adjustment, not a refit.
-    "silking":        {"GDD50": 1600.0, "k": 0.00723, "r_squared": 0.917, "n":  88},
+    # GDD50 = 16-yr-refit 1388 (reverted 2026-07-14 after briefly trying
+    # 1550/1600). A state cross-check settled it: Iowa state silking was 38%
+    # wk-ending-Jul-12, and 50yr district data shows EC TRACKS the state
+    # (+1.6pp), not behind it. The original 1388 gives ~41% at that week's GDD
+    # — correct. The 1550/1600 shifts (anchored on an underestimated field
+    # read) overshot, dragging the peak to ~13%. The real flaw was only the
+    # fat lower tail (4.4% at Jun 22); that's handled by the 5% stage floor
+    # (see cache/fix_silking_floor.py), not by moving the curve.
+    "silking":        {"GDD50": 1388.0, "k": 0.00723, "r_squared": 0.917, "n":  88},
     # GDD50 manually shifted 1843.8->2250 (2026-07-14): 16-yr curve ran early
     # on doughing too (showed ~4% mid-July; EC Iowa soft dough is ~mid-late
     # Aug). 2250 keeps dough ~0 through July, 50% ~Aug 22 (~4wk after 50%

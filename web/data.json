@@ -4254,8 +4254,8 @@
         "dented": null,
         "corn_mature": null,
         "corn_harvested": null,
-        "pf_state": null,
-        "ge_state": null,
+        "pf_state": 19.0,
+        "ge_state": 80.0,
         "top_vs": null,
         "top_s": null,
         "top_a": null,
@@ -4801,14 +4801,14 @@
         "latest_iso_week": null
       },
       "pf_state": {
-        "latest_pct": 21.0,
-        "latest_monday": "2026-07-13",
-        "latest_iso_week": 29
+        "latest_pct": 19.0,
+        "latest_monday": "2026-07-20",
+        "latest_iso_week": 30
       },
       "ge_state": {
-        "latest_pct": 78.0,
-        "latest_monday": "2026-07-13",
-        "latest_iso_week": 29
+        "latest_pct": 80.0,
+        "latest_monday": "2026-07-20",
+        "latest_iso_week": 30
       }
     }
   },

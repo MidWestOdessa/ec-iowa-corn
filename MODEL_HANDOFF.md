@@ -363,23 +363,37 @@ When a current-week stage's GDD hasn't published, it is acceptable to write a te
 
 ## 7. Weekly operating procedure
 
-Runs Monday afternoon or later. **Close the workbook in Excel first** — openpyxl cannot write
-to an open file (`PermissionError`).
+Runs Monday afternoon or later. **Close the workbook in Excel first** — Excel takes an exclusive
+lock that blocks both reads and writes.
 
-1. **Back up** the workbook to a dated filename. Every script does this first.
-2. **CASMA:** retry the last ~4 ISO weeks. Expect the most recent ~2 to fail (latency).
-   Write successes to the Crop-CASMA archive.
-3. **NOAA:** fetch May 1 → Dec 31, compute cumulative, write row 25. Retries on SSL timeout.
-4. **Conditions:** fetch the latest report from ESMIS; write G+E → row 11, P+F → row 10 in the
-   report-Monday column, with the full VP/P/F/G/E breakdown in a cell comment.
-5. **Planted:** ask the owner; write to row 3.
-6. **Sanity-check stages** against the state report (C3). Investigate divergence; don't paper over it.
-7. **Regenerate the dashboard snapshot** and push:
+```bash
+uv run ec-iowa weekly-update          # CASMA + GDD + conditions, backs up first
+uv run ec-iowa weekly-update --dry-run   # fetch and report, write nothing
+uv run ec-iowa verify                 # health checks
+uv run ec-iowa forecast               # current yield forecast
+uv run ec-iowa conditions             # latest USDA figures incl. stage cross-check
+```
+
+`weekly-update` does:
+1. **Backs up** the workbook to a dated sibling.
+2. **CASMA** — retries the last 4 ISO weeks (`--weeks N` to widen). Expect the most recent ~2 to
+   report "not ready"; that is the ~2-week latency, not a failure.
+3. **NOAA** — fetches May 1 → Dec 31, computes cumulative, writes the GDD row. Retries 3× on
+   the SSL timeouts that host is prone to.
+4. **Conditions** — fetches the latest ESMIS report and writes G+E and P+F into the
+   report-Monday column, with the full VP/P/F/G/E breakdown as a cell comment.
+
+Then, manually:
+
+5. **Planted** — ask the owner; write to row 3. (Not automated: it is his own field knowledge.)
+6. **Cross-check stages** against `ec-iowa conditions` (C3). Investigate divergence rather than
+   papering over it — a mismatch has twice revealed a real calibration problem.
+7. **Refresh the dashboard**:
    ```bash
    uv run python -m web.snapshot
    git add web/data.json && git commit -m "Snapshot YYYY-MM-DD" && git push
    ```
-   Streamlit Cloud auto-redeploys on push. **If you skip this, the public dashboard goes stale.**
+   Streamlit Cloud redeploys on push. **Skip this and the public dashboard silently goes stale.**
 
 ### Season milestones
 - **Late July / early Aug:** peak-July subsoil stress is known → compute the real yield forecast
@@ -393,37 +407,42 @@ to an open file (`PermissionError`).
 
 **Honest assessment of what is not done or not settled.**
 
-### Code state — most of the package is stubs
+### Code state
 | Module | Lines | State |
 |---|---:|---|
-| `casma.py` | 404 | ✅ Complete |
-| `noaa.py` | 176 | ✅ Complete |
-| `config.py` | 177 | ✅ Complete |
-| `web/app.py`, `web/snapshot.py` | 923 / 273 | ✅ Complete |
-| `cli.py` | 48 | ⚠ argparse skeleton; **every subcommand is an unimplemented stub** |
-| `workbook.py`, `yield_model.py`, `gdd_stage.py`, `nass.py`, `usdm.py` | 5–8 each | ❌ Docstring-only stubs |
+| `casma.py` | 404 | ✅ CASMA client, rollups, archive writer |
+| `cli.py` | 258 | ✅ `weekly-update`, `forecast`, `conditions`, `verify` |
+| `config.py` | 183 | ✅ All constants |
+| `noaa.py` | 176 | ✅ Temps, GDD, workbook writer |
+| `nass.py` | 139 | ✅ Crop Progress report parser |
+| `yield_model.py` | 119 | ✅ Prediction + peak-July input |
+| `workbook.py` | 115 | ✅ Lock/backup/column-lookup helpers |
+| `gdd_stage.py` | 64 | ✅ Logistic + floor + ordering guard |
+| `usdm.py` | 5 | ❌ Stub — the unbuilt CASMA fallback |
+| `web/app.py`, `web/snapshot.py` | 923 / 273 | ✅ Dashboard |
 
-**The real weekly work is done by ~82 ad-hoc scripts in `cache/` — and `cache/` is
-`.gitignore`d, so none of it transfers via git.** This is the single biggest gap for a handoff.
-The highest-value ones to promote into the repo:
+The weekly routine is now **one command** (§7). Historically it lived in ~82 ad-hoc scripts in
+`cache/`; the load-bearing logic has been promoted into the modules above.
 
-- `fetch_condition_direct.py` — the working condition lookup
-- `refresh_*.py` / `weekly_update_*.py` — the weekly pipeline (many near-duplicate dated copies)
-- `compute_2026_forecast.py` — forecast computation
-- `ec_vs_state_silking.py` — the district-vs-state validation
-- `build_forecast_pdf.py` — the manager-facing PDF
-- `probe_casma_latency.py`, `probe_noaa_latency.py` — latency diagnostics
-
-**Recommended first task for whoever picks this up:** consolidate those into real modules
-(`workbook.py`, `yield_model.py`, `gdd_stage.py`) and implement the `cli.py` subcommands
-(`weekly-update`, `backfill`, `verify`, `forecast`). Then the weekly procedure is one command
-instead of a hand-edited script.
+⚠ **`cache/` is `.gitignore`d and does not transfer via git.** It still holds the one-off
+diagnostics and dated migration scripts — useful as forensic history (how each calibration was
+derived, the CASMA WPS reverse-engineering, the latency probes), but nothing there is required
+to run the pipeline. If the owner wants that history preserved, copy the directory manually.
 
 ### Testing
-`tests/test_config.py` has **6 tests, all constants sanity-checks** (county count, acre total,
-Tama excluded, block spacing, stage keys, 2020 excluded). **There are zero tests for `casma.py`
-or `noaa.py`** — no mocked-HTTP coverage, no parser tests. Both have real parsing logic that has
-already broken once when CSISS changed its error format.
+**35 tests**, all offline.
+
+| File | Covers |
+|---|---|
+| `test_config.py` | Constants: county count, acre total, Tama excluded, block spacing, stage keys, 2020 excluded |
+| `test_gdd_stage.py` | Logistic behaviour, the 5% floor, **the ordering invariant**, monotonicity, bounds |
+| `test_nass.py` | Report parsing against a verbatim fixture — including **the four-column trap** that caused a real misread |
+| `test_noaa_gdd.py` | GDD caps/floors, cumulative accumulation, **the stop-at-last-observed rule**, the CASMA→NASS calibration, yield-model behaviour |
+
+⚠ **Still untested: the HTTP paths themselves** — `casma.fetch_county_week` /
+`fetch_district_week` and `noaa.fetch_daily_temps`. Their *parsers* and *math* are covered, but
+the request/retry/error-translation logic is not. CSISS has changed its error format once
+already, so **mocked-HTTP tests for `casma.py` are the highest-value remaining test work.**
 
 ### Model issues
 1. ~~Doughing GDD50 exceeds Dented~~ — **fixed 2026-07-31** by re-fitting doughing to observed

@@ -17,12 +17,19 @@ uv sync --extra dev
 copy .env.example .env
 # Edit .env: paste NOAA_TOKEN from https://www.ncdc.noaa.gov/cdo-web/token
 
-# Run CLI (entry points are stubs until Phase 4)
-uv run ec-iowa --help
+# Weekly routine (close the workbook in Excel first)
+uv run ec-iowa weekly-update      # CASMA + GDD + conditions; backs up first
+uv run ec-iowa forecast           # current yield forecast + confidence band
+uv run ec-iowa conditions         # latest USDA figures (incl. stage cross-check)
+uv run ec-iowa verify             # health checks, writes nothing
 
 # Run tests
 uv run pytest
 ```
+
+**Full technical documentation: [`MODEL_HANDOFF.md`](MODEL_HANDOFF.md)** — workbook structure,
+the three models, data sources and their failure modes, the conventions that matter, and the
+pitfalls behind each of them. Read it before changing anything.
 
 ## Layout
 

@@ -138,11 +138,17 @@ GDD_STAGE_PARAMS: dict[str, dict[str, float]] = {
     # fat lower tail (4.4% at Jun 22); that's handled by the 5% stage floor
     # (see cache/fix_silking_floor.py), not by moving the curve.
     "silking":        {"GDD50": 1388.0, "k": 0.00723, "r_squared": 0.917, "n":  88},
-    # GDD50 manually shifted 1843.8->2250 (2026-07-14): 16-yr curve ran early
-    # on doughing too (showed ~4% mid-July; EC Iowa soft dough is ~mid-late
-    # Aug). 2250 keeps dough ~0 through July, 50% ~Aug 22 (~4wk after 50%
-    # silking). Onset adjustment for the delayed 2026 season, not a refit.
-    "doughing":       {"GDD50": 2250.0, "k": 0.00476, "r_squared": 0.824, "n": 108},
+    # Fit to OBSERVED 2026 Iowa dough progress (2026-07-31), two points:
+    #   8%  at GDD 1525.0  (week ending Sun Jul 19)
+    #   28% at GDD 1673.5  (week ending Sun Jul 26)
+    # Replaces a hand-guessed 2250 (set 2026-07-14) that read 0%/6% against
+    # those same points AND had pushed doughing above dented (2221.2),
+    # breaking the phenological ordering. The 16-yr fitted value (1843.8,
+    # k=0.00476) read 18%/31% — closer, but too shallow: the observed
+    # 8->28% jump over 148 GDD demands a steeper k.
+    # Caveat: a two-point, season-specific calibration. Revisit if later
+    # dough weeks diverge, and re-fit properly once the season completes.
+    "doughing":       {"GDD50": 1767.1, "k": 0.01009, "r_squared": 0.824, "n": 108},
     "dented":         {"GDD50": 2221.2, "k": 0.00562, "r_squared": 0.915, "n": 115},
     "corn_mature":    {"GDD50": 2619.1, "k": 0.00799, "r_squared": 0.792, "n": 102},
     "corn_harvested": {"GDD50": 2952.5, "k": 0.00456, "r_squared": 0.367, "n": 129},

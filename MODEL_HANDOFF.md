@@ -205,7 +205,7 @@ from May 1.
 | Planted | 56.6 | 0.02243 | 0.765 | 103 |
 | Emerged | 199.9 | 0.01053 | 0.843 | 99 |
 | Silking | 1388.0 | 0.00723 | 0.917 | 88 |
-| Doughing | **2250.0** ⚠ | 0.00476 | 0.824 | 108 |
+| Doughing | 1767.1 † | 0.01009 † | 0.824 | 108 |
 | Dented | 2221.2 | 0.00562 | 0.915 | 115 |
 | Corn mature | 2619.1 | 0.00799 | 0.792 | 102 |
 | Corn harvested | 2952.5 | 0.00456 | **0.367** ⚠ | 129 |
@@ -213,13 +213,18 @@ from May 1.
 - Fit on **2010–2025** district observations from `PublicHISTORIC_CORN.xlsx` paired with
   NOAA-standard GDD. An era-split test showed pre-2010 data *degrades* the fit (genetic drift:
   1970s–80s hybrids develop on a different GDD schedule).
-- ⚠ **Doughing GDD50 = 2250 is a hand-tuned onset adjustment, not a refit** (2026-07-14). The
-  fitted 1843.8 showed ~4% dough in mid-July, which is agronomically wrong for EC Iowa
-  (soft dough is mid-to-late August). **Note it is now higher than Dented (2221.2)** — the two
-  are out of biological order. This has not mattered yet because neither has activated, but
-  **it must be reconciled before the dough/dent window** (§8).
+- † **Doughing was re-fit 2026-07-31 to observed data**, not the 16-year archive: Iowa dough was
+  8% at GDD 1525 (wk ending Jul 19) and 28% at GDD 1673.5 (wk ending Jul 26); solving the
+  logistic through both points gives GDD50 1767.1, k 0.01009. This replaced a hand-guessed 2250
+  that read 0%/6% against those points **and had pushed doughing above dented, breaking the
+  phenological ordering**. Caveat: two-point, season-specific. Re-fit properly once 2026 completes.
 - ⚠ **Harvested R² = 0.367** — GDD is a weak predictor of harvest timing (weather windows and
   logistics dominate). Don't trust it much.
+- **Ordering invariant:** GDD50 must increase monotonically across
+  planted → emerged → silking → doughing → dented → mature → harvested. Check it after any
+  parameter change (`cache/check_stage_order.py`). A hand-tuned shift broke this once.
+- **Silking is validated against state data:** at GDD 1525 the model reads 72.9% vs Iowa's 72%;
+  at GDD 1673.5, 88.7% vs 87%. Both sit within the expected +1.6 pp EC-over-state offset.
 - Constants: `config.GDD_STAGE_PARAMS`. **Keep the workbook's parameter table (rows 13–19) and
   `config.py` in sync — nothing enforces this automatically.**
 
@@ -293,8 +298,13 @@ Released **Mondays ~3–4pm CST** for the week ending the prior Sunday.
 
 - ❌ `www.nass.usda.gov` returns **403** to scrapers. ❌ QuickStats API returns **401** without
   a key. ✅ `esmis.nal.usda.gov` serves fine.
-- The same report has a `Corn Silking - Selected States` table — used **only as a cross-check**
-  (§6, Convention C3).
+- The same report has `Corn Silking` / `Corn Dough` / `Corn Dent` tables. Use them as a
+  **cross-check** (§6, C3) and as **calibration anchors** when a stage curve is demonstrably
+  wrong — but never to populate a district cell directly.
+- ⚠ **Read the column headers.** These progress tables are four columns wide:
+  *last year / last week / this week / 5-yr average*. The first number on the Iowa row is
+  **last year's**, not this week's. Misreading this produced a false "model is 8pp hot"
+  conclusion about silking on 2026-07-27.
 
 ### 5.4 Historical reference workbooks (read-only inputs)
 Two IEM exports live beside the canonical workbook. They were used to fit the models and remain
@@ -416,9 +426,11 @@ or `noaa.py`** — no mocked-HTTP coverage, no parser tests. Both have real pars
 already broken once when CSISS changed its error format.
 
 ### Model issues
-1. **Doughing GDD50 (2250) now exceeds Dented (2221.2)** — biologically out of order. Must be
-   reconciled before the dough/dent window activates.
-2. **Doughing 2250 and the 5% floor are hand-tuned**, anchored on judgment, not fitted.
+1. ~~Doughing GDD50 exceeds Dented~~ — **fixed 2026-07-31** by re-fitting doughing to observed
+   Iowa dough progress (see §4.3). Ordering is monotonic again. The lesson stands: verify
+   ordering after any hand adjustment.
+2. **Doughing is a two-point season calibration** and the 5% floor is a judgment call. Neither
+   is a proper refit. Re-fit doughing across the full archive once 2026 completes.
 3. **Harvested R² = 0.367** — near-useless. Consider a different predictor.
 4. **Silking calibration history is messy**: it was shifted 1388→1550→1600 chasing an early-onset
    complaint, then **reverted to 1388** when the state cross-check showed the shifts overshot.

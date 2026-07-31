@@ -544,7 +544,59 @@ Now clipped to `max(daily_temps)`.
 
 ---
 
-## 11. Working style the owner expects
+## 11. Handing this to another environment or agent
+
+**The git repo alone is not a working system.** It carries all the code, tests and
+documentation — but not the data. Cloning it gets you a codebase you can read, refactor and
+test; it does not get you a pipeline you can run.
+
+### What travels with the repo
+Code, the 35 offline tests, this document, the dashboard, `uv.lock`. A fresh clone can run
+`uv sync && uv run pytest` and get 35 passes with no data and no credentials — so a coding
+agent can verify its own changes.
+
+### What must be transferred separately
+| Item | Why it is not in git | How to supply it |
+|---|---|---|
+| **The workbook** (`Corn Progress EC Iowa 2021 2025 v5.xlsx`) | It *is* the deliverable; lives in OneDrive, and `.gitignore` excludes `workbooks/*.xlsx` | Copy the file, then set `EC_IOWA_WORKBOOK` to its path |
+| **`NOAA_TOKEN`** | Secret; `.env` is gitignored | Free token from the NOAA CDO link in `.env.example` |
+| **`PublicHISTORIC_CORN.xlsx`**, **`PublicHISTORIC_Moisture.xlsx`** | Large reference exports beside the workbook | Copy from the OneDrive folder. Only needed to *refit* models |
+| **`cache/`** (~82 scripts, ~765 CSVs) | Gitignored working directory | Optional. Nothing there is required to run; it is forensic history plus a CASMA response cache. Without it the first CASMA run re-fetches |
+
+### Degraded mode without the workbook
+Commands report the problem rather than throwing:
+
+```
+$ ec-iowa forecast
+Cannot read the workbook: Workbook not found at: ...
+It is not in the repo (it lives in the owner's OneDrive). Set EC_IOWA_WORKBOOK
+to a local copy, or see .env.example.
+```
+
+| Capability | Works without the workbook? |
+|---|---|
+| `pytest` (35 tests) | ✅ |
+| `ec-iowa conditions` (USDA fetch) | ✅ network only |
+| `ec-iowa verify` | ⚠ partial — checks model params, reports the workbook gap |
+| `ec-iowa forecast` | ❌ needs the archive |
+| `ec-iowa weekly-update` | ❌ needs the workbook and `NOAA_TOKEN` |
+| `web.snapshot` | ❌ reads the workbook |
+
+**Note for a cloud sandbox** (ChatGPT Codex and similar): those environments generally have no
+OneDrive, no Windows paths, and often no outbound network. Expect the offline tests to pass and
+everything data-dependent to fail. That is enough for refactoring, model math, and test work —
+not for running the weekly routine. Run the pipeline on the owner's machine.
+
+### A good first task for a new agent
+1. `uv sync && uv run pytest` — confirm 35 pass.
+2. Read §6 (conventions) and §10 (pitfalls) before touching anything. Most bugs here came from
+   the column conventions, not the algorithms.
+3. Highest-value open work: **mocked-HTTP tests for `casma.py`** (§8), then building `usdm.py`
+   as the CASMA fallback.
+
+---
+
+## 12. Working style the owner expects
 
 - **Small, confirmed steps** over large multi-step operations.
 - **Show concrete diffs and run commands**, not abstract plans.

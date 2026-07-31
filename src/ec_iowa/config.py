@@ -5,6 +5,7 @@ and external API base URLs live here so there's one source of truth.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 # ---- File paths --------------------------------------------------------
@@ -12,10 +13,32 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = PROJECT_ROOT / "cache"
 
-# Canonical workbook lives in OneDrive for cross-device backup (handoff §10).
-WORKBOOK_PATH = Path(
+WORKBOOK_FILENAME = "Corn Progress EC Iowa 2021 2025 v5.xlsx"
+
+# The canonical workbook is the deliverable and is NOT in the repo — it lives
+# in the owner's OneDrive so it syncs across devices, and .gitignore excludes
+# workbooks/*.xlsx. Anyone working outside that machine must supply their own
+# copy and point EC_IOWA_WORKBOOK at it:
+#
+#     PowerShell : $env:EC_IOWA_WORKBOOK = "D:\data\Corn Progress ... .xlsx"
+#     bash       : export EC_IOWA_WORKBOOK=/data/corn.xlsx
+#
+# Falls back to the owner's path so his machine needs no configuration.
+_DEFAULT_WORKBOOK = Path(
     r"C:\Users\artur\OneDrive\Рабочий стол\Yield model"
-) / "Corn Progress EC Iowa 2021 2025 v5.xlsx"
+) / WORKBOOK_FILENAME
+
+WORKBOOK_PATH = Path(os.environ.get("EC_IOWA_WORKBOOK") or _DEFAULT_WORKBOOK)
+
+
+def workbook_available() -> bool:
+    """Whether the canonical workbook is reachable in this environment.
+
+    False in a fresh clone or a cloud sandbox. Offline work (tests, refactors,
+    model math) does not need it; anything that reads or writes district data
+    does.
+    """
+    return WORKBOOK_PATH.is_file()
 
 # ---- Geography: USDA NASS District 60 (East-Central Iowa) --------------
 # Source: handoff §1. Tama (FIPS 19171) is District 50 — DO NOT include.

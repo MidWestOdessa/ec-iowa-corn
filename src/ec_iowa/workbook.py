@@ -38,12 +38,30 @@ if TYPE_CHECKING:
 
 
 class WorkbookLocked(RuntimeError):
-    """The workbook is open in Excel and cannot be written."""
+    """The workbook is open in Excel and cannot be read or written."""
+
+
+class WorkbookMissing(FileNotFoundError):
+    """The canonical workbook is not present in this environment.
+
+    Expected in a fresh clone or a cloud sandbox — the workbook is the
+    deliverable and is not committed. Point EC_IOWA_WORKBOOK at a copy.
+    """
+
+
+def _missing(path: Path) -> WorkbookMissing:
+    return WorkbookMissing(
+        f"Workbook not found at:\n  {path}\n"
+        "It is not in the repo (it lives in the owner's OneDrive). Set "
+        "EC_IOWA_WORKBOOK to a local copy, or see .env.example."
+    )
 
 
 def ensure_writable(path: Path | None = None) -> None:
-    """Raise WorkbookLocked if Excel (or anything) holds the file open."""
+    """Raise if the workbook is absent, or held open by Excel."""
     path = path or config.WORKBOOK_PATH
+    if not path.is_file():
+        raise _missing(path)
     try:
         path.open("ab").close()
     except PermissionError as exc:
@@ -69,6 +87,8 @@ def load(data_only: bool = False, path: Path | None = None) -> "Workbook":
     PermissionError with an unreadable path.
     """
     path = path or config.WORKBOOK_PATH
+    if not path.is_file():
+        raise _missing(path)
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

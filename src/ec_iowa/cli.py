@@ -127,7 +127,7 @@ def cmd_forecast(args) -> int:
     year = args.year or date.today().year
     try:
         fc = yield_model.forecast(year)
-    except wbio.WorkbookLocked as exc:
+    except (wbio.WorkbookLocked, wbio.WorkbookMissing) as exc:
         print(f"Cannot read the workbook: {exc}")
         return 1
     except ValueError as exc:
@@ -180,7 +180,11 @@ def cmd_verify(_args) -> int:
 
     try:
         wbio.ensure_writable()
-        print("  ok    workbook is not locked by Excel")
+        print(f"  ok    workbook reachable and writable")
+    except wbio.WorkbookMissing:
+        ok = False
+        print(f"  FAIL  workbook not found at {config.WORKBOOK_PATH}")
+        print(f"        set EC_IOWA_WORKBOOK to a local copy (see .env.example)")
     except wbio.WorkbookLocked:
         ok = False
         print("  FAIL  workbook is open in Excel")
@@ -200,8 +204,8 @@ def cmd_verify(_args) -> int:
                 print(f"  FAIL  stage parameter drift — {d}")
         else:
             print("  ok    workbook stage parameters match config.py")
-    except wbio.WorkbookLocked:
-        print("  skip  stage-parameter comparison (workbook open in Excel)")
+    except (wbio.WorkbookLocked, wbio.WorkbookMissing):
+        print("  skip  stage-parameter comparison (workbook unavailable)")
     except Exception as exc:                          # noqa: BLE001
         ok = False
         print(f"  FAIL  could not compare stage parameters ({exc})")
